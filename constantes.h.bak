@@ -1,0 +1,11 @@
+// Parámetros de conexión a la red WiFi
+#define WIFI_SSID       "SSID_WIFI"
+#define WIFI_PASS       "password"
+
+// Parámetros del conexión con thinger.io
+#define usuario "user"
+#define device_Id "id"
+#define device_credentials "12345678"
+
+// Clave para actualizar por OTA
+#define CLAVE_OTA "claveota"
