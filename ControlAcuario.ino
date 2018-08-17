@@ -63,8 +63,7 @@ void setup() {
   };
   
   thing["NodeMCU"] >> [](pson& out){
-    out["TemperaturaAgua"] = getTemperature();
-    //String(temperatureString);
+    out["TemperaturaAgua"] = String(temperatureString);
     out["Ventiladores"] = ventiladoresOn || forzarVentiladores;
   };
 }
@@ -76,7 +75,7 @@ void loop() {
   // Leer temperatura del sensor
   float temperature = getTemperature();
 
-  dtostrf(temperature, 2, 2, temperatureString);
+  dtostrf(temperature, 2, 1, temperatureString);
   
   Serial.println(temperatureString);
 
@@ -130,10 +129,10 @@ void loop() {
 float getTemperature() {
   float temp;
   
-  while (temp == 85.0 || temp == (-127.0)) {
+  do {
     DS18B20.requestTemperatures(); 
     temp = DS18B20.getTempCByIndex(0);
-  }
+  } while (temp == 85.0 || temp == (-127.0)) ;
 
   return temp;
 }
