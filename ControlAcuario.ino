@@ -14,6 +14,9 @@
 #define MAX_TEMP 27.5
 #define MARGEN_TEMP 0.5
 
+// Calibración del sensor de temperatura
+#define CALIBRATION 1.7
+
 ThingerESP8266 thing(usuario, device_Id, device_credentials);
 
 OneWire oneWire(ONE_WIRE_BUS);
@@ -63,8 +66,7 @@ void setup() {
   };
   
   thing["NodeMCU"] >> [](pson& out){
-    out["TemperaturaAgua"] = getTemperature();
-    //String(temperatureString);
+    out["TemperaturaAgua"] = String(temperatureString);
     out["Ventiladores"] = ventiladoresOn || forzarVentiladores;
   };
 }
@@ -76,7 +78,7 @@ void loop() {
   // Leer temperatura del sensor
   float temperature = getTemperature();
 
-  dtostrf(temperature, 2, 2, temperatureString);
+  dtostrf(temperature, 2, 1, temperatureString);
   
   Serial.println(temperatureString);
 
@@ -105,14 +107,14 @@ void loop() {
   }
   else {
     // Si se ha superado la temperatura máxima y no están encendidos los ventiladores, se encienden
-    if ((temperature >= (MAX_TEMP + MARGEN_TEMP)) and (not ventiladoresOn))
+    if ((temperature > (MAX_TEMP + MARGEN_TEMP)) and (not ventiladoresOn))
     {
       digitalWrite(relayInput, HIGH); // turn relay on
       ventiladoresOn = true;
       Serial.println("Encendiendo ventiladores");
     }
     // Si se ha bajado de la temperatura mínima y están encendidos los ventiladores, se apagan
-    else if ((temperature <= (MAX_TEMP - MARGEN_TEMP)) and (ventiladoresOn))
+    else if ((temperature < (MAX_TEMP - MARGEN_TEMP)) and (ventiladoresOn))
     {
       digitalWrite(relayInput, LOW); // turn relay off
       ventiladoresOn = false;
@@ -128,13 +130,27 @@ void loop() {
 }
 
 float getTemperature() {
+  unsigned long lastTime = 0;
   float temp;
+  float aveTemp;
+  int cont = 0;
   
-  while (temp == 85.0 || temp == (-127.0)) {
+  lastTime = millis();
+
+  // Se muestrea la temperatura durante 1 segundo y obtenemos la media
+  while ((millis() - lastTime) < 1000) {
     DS18B20.requestTemperatures(); 
     temp = DS18B20.getTempCByIndex(0);
+    if (not(temp == 85.0 || temp == (-127.0))) {
+      aveTemp += temp;
+      cont += 1;
+    }
   }
 
-  return temp;
+  // Sólo interesa 1 decimal de precisión
+  temp =  round((aveTemp/cont)*10.0)/10.0;
+
+  // Con la calibración paliamos el error que da el sensor en su lectura frente a la temperatura real
+  return temp + CALIBRATION;
 }
 
